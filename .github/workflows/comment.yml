@@ -27,7 +27,7 @@ jobs:
       - name: Verify that author of comment is collaborator
         if: steps.check-author.outputs.allow == 'write' ||
           steps.check-author.outputs.allow == 'maintain' ||
-          steps.check-author.outputs.allow == 'admin' ||
+          steps.check-author.outputs.allow == 'admin'
         uses: actions/github-script@v3
         with:
           script: |
