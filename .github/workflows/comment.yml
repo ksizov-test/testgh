@@ -1,0 +1,56 @@
+name: Comment
+on:
+  issue_comment:
+    types: [created]
+
+env:
+  WORKFLOW_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+jobs:
+  verify_author:
+    if: contains(github.event.issue.html_url, '/pull') &&
+      contains(github.event.comment.body, '/check')
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.get-ref.outputs.ref }}
+      cid: ${{ steps.send-status.outputs.cid }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions: read-all
+    steps:
+      - name: Check author of comment
+        id: check-author
+        run: |
+          COLLABORATOR=$(gh api -H "Accept: application/vnd.github.v3+json" repos/${{ github.repository }}/collaborators | jq ".[] | select((.login == \"${{ github.event.comment.user.login }}\"))")
+
+          gh api -H "Accept: application/vnd.github.v3+json" repos/${{ github.repository }}/collaborators
+          gh api -H "Accept: application/vnd.github.v3+json" repos/${{ github.repository }}/collaborators/${{ github.event.comment.user.login }}/permission
+
+          echo Author of comment: ${COLLABORATOR}
+          echo ::set-output name=collaborator::${COLLABORATOR}
+
+      - name: Verify that author of comment is collaborator
+        if: steps.check-author.outputs.collaborator == ''
+        uses: actions/github-script@v3
+        with:
+          script: |
+            core.setFailed('User that send comment with run command is not collaborator')
+
+      - name: Get branch name
+        id: get-ref
+        run: |
+          BRANCH=$(gh api /repos/${{ github.repository }}/pulls/${{ github.event.issue.number }} | jq -r '.head.ref')
+          echo ::set-output name=ref::${BRANCH}
+
+      - name: Send comment. Test are executing
+        id: send-status
+        run: |
+          BODY=":hourglass: Tests are executing, see more information [here](${{ env.WORKFLOW_RUN_URL }})"
+          BODY=$BODY"\n :warning: Cancel [this](${{ env.WORKFLOW_RUN_URL }}) workflow manually first, if you want to restart full check"
+          BODY=$(echo -e $BODY)
+
+          COMMENT_ID=$(gh api --method POST \
+            /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
+            -f body="${BODY}" | jq '.id')
+
+          echo ::set-output name=cid::${COMMENT_ID}
