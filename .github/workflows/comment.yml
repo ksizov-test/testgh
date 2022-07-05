@@ -22,7 +22,7 @@ jobs:
         id: check-author
         run: |
           PERM=$(gh api repos/${{ github.repository }}/collaborators/${{ github.event.comment.user.login }}/permission | jq -r '.permission')
-          echo ::set-output name=allow::${ALLOW}
+          echo ::set-output name=perm::${PERM}
 
       - name: Verify that author of comment is collaborator
         if: steps.check-author.outputs.allow == 'write' ||
