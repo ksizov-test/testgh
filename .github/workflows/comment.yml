@@ -26,7 +26,7 @@ jobs:
           echo ::set-output name=perm::${PERM}
 
       - name: Verify that author of comment is collaborator
-        if: steps.check-author.outputs.perm == 'write' || steps.check-author.outputs.perm == 'maintain' || steps.check-author.outputs.perm == 'admin'
+        if: ${{ steps.check-author.outputs.perm == 'write' || steps.check-author.outputs.perm == 'maintain' || steps.check-author.outputs.perm == 'admin' }}
         uses: actions/github-script@v3
         with:
           script: |
