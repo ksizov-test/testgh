@@ -22,11 +22,14 @@ jobs:
         id: check-author
         run: |
           PERM=$(gh api repos/${{ github.repository }}/collaborators/${{ github.event.comment.user.login }}/permission | jq -r '.permission')
-          echo $PERM
-          echo ::set-output name=perm::${PERM}
+          if [[ $PERM == "write" || $PERM == "maintain" || $PERM == "admin" ]];
+          then
+            ALLOW="true"
+          fi
+          echo ::set-output name=allow::${ALLOW}
 
       - name: Verify that author of comment is collaborator
-        if: ${{ steps.check-author.outputs.perm == 'write' || steps.check-author.outputs.perm == 'maintain' || steps.check-author.outputs.perm == 'admin' }}
+        if: steps.check-author.outputs.perm == ''
         uses: actions/github-script@v3
         with:
           script: |
